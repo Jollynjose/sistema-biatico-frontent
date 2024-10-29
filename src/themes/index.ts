@@ -14,10 +14,16 @@ const theme = createTheme({
   cssVariables: true,
   palette: {
     primary: {
-      main: '#556cd6',
+      light: '#757ce8',
+      main: '#00209f',
+      dark: '#002884',
+      contrastText: '#fff',
     },
     secondary: {
-      main: '#19857b',
+      light: '#ff7961',
+      main: '#f44336',
+      dark: '#ba000d',
+      contrastText: '#000',
     },
     error: {
       main: red.A400,
@@ -25,6 +31,15 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: roboto.style.fontFamily,
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+        },
+      },
+    },
   },
 });
 
