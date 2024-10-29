@@ -37,6 +37,7 @@ function Home() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            padding: '0rem 1rem 1rem 1rem',
           }}
         >
           <ViaticosForm />

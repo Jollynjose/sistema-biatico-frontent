@@ -11,6 +11,7 @@ function DefaultLayout({ children }: PropsWithChildren) {
         sx={{
           paddingX: '3rem',
           boxSizing: 'content-box',
+          overflowY: 'auto',
         }}
       >
         {children}

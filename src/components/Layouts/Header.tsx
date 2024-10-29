@@ -53,7 +53,11 @@ function Header() {
   };
 
   return (
-    <AppBar position="static" component="header" sx={{ mb: '1rem' }}>
+    <AppBar
+      position="sticky"
+      component="header"
+      sx={{ mb: '1rem', overflow: 'none' }}
+    >
       <Head>
         <title>Sistema Viaticos</title>
       </Head>
