@@ -17,11 +17,13 @@
     "@mui/material": "^6.1.5",
     "@mui/x-date-pickers": "^7.22.0",
     "dayjs": "^1.11.13",
+    "formik": "^2.4.6",
     "next": "15.0.1",
     "next-auth": "^4.24.10",
     "react": "19.0.0-rc-69d4b800-20241021",
     "react-dom": "19.0.0-rc-69d4b800-20241021",
     "react-query": "^3.39.3",
+    "yup": "^1.4.0",
     "zustand": "^5.0.0"
   },
   "devDependencies": {

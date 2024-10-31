@@ -4,19 +4,18 @@ import { Box } from '@mui/material';
 
 function DefaultLayout({ children }: PropsWithChildren) {
   return (
-    <>
+    <Box>
       <Header />
       <Box
         component="main"
         sx={{
           paddingX: '3rem',
           boxSizing: 'content-box',
-          overflowY: 'auto',
         }}
       >
         {children}
       </Box>
-    </>
+    </Box>
   );
 }
 
