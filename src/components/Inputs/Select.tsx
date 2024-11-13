@@ -20,7 +20,7 @@ interface Props {
 
 function Select({ label, selectProps, menuItemsProps }: Props) {
   return (
-    <FormControl>
+    <FormControl fullWidth>
       <InputLabel id="demo-simple-select-label">{label}</InputLabel>
       <SelectMUI {...selectProps}>
         {menuItemsProps.map((item) => {

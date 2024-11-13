@@ -24,7 +24,19 @@ const ViaticosPorPersonaSchema = yup.object().shape({
 const ViaticosSchema = yup.object().shape({
   people: yup.array().of(ViaticosPorPersonaSchema).min(2).required(),
   tolls: yup.array().of(yup.number().required()).min(2).required(),
-  solicitudeDate: yup.date().required(),
+  solicitudeDate: yup
+    .date()
+    .nullable()
+    .required()
+    .test((value, context) => {
+      if (value === null) {
+        return new yup.ValidationError(
+          'La fecha de solicitud es requerida',
+          context.path,
+        );
+      }
+      return true;
+    }),
   visitMotivation: yup.string().required(),
   dependency: yup.string().required(),
   transportation: yup
@@ -40,12 +52,36 @@ const ViaticosSchema = yup.object().shape({
   site: yup.string().required(),
   startPoint: yup.string().required(),
   visitPlace: yup.string().required(),
-  kilometers: yup.number().required(),
-  fuelPrice: yup.number().required(),
-  fuelGallons: yup.number().required(),
-  cashAmount: yup.number().required(),
-  departureTime: yup.date().required(),
-  arrivalTime: yup.date().required(),
+  kilometers: yup.number().min(0).required(),
+  fuelPrice: yup.number().min(0).required(),
+  fuelGallons: yup.number().min(1).required(),
+  cashAmount: yup.number().min(0).required(),
+  departureTime: yup
+    .date()
+    .nullable()
+    .required()
+    .test((value, context) => {
+      if (value === null) {
+        return new yup.ValidationError(
+          'La fecha de salida es requerida',
+          context.path,
+        );
+      }
+      return true;
+    }),
+  arrivalTime: yup
+    .date()
+    .nullable()
+    .required()
+    .test((value, context) => {
+      if (value === null) {
+        return new yup.ValidationError(
+          'La fecha de llegada es requerida',
+          context.path,
+        );
+      }
+      return true;
+    }),
 });
 
 export type ViaticosSchemaType = yup.InferType<typeof ViaticosSchema>;
