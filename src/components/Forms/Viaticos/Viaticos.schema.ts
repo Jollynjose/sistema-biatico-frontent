@@ -2,12 +2,7 @@ import { CombustibleValues, TransporteValues } from '@/interfaces/viaticos';
 import * as yup from 'yup';
 
 const ViaticosPorPersonaSchema = yup.object().shape({
-  position: yup
-    .array()
-    .of(yup.string().required())
-    .min(1)
-    .nonNullable()
-    .required(),
+  position: yup.string().required(),
   employeeName: yup.string().required(),
   fullName: yup.string().required(),
   breakfast: yup.number().required(),
@@ -17,13 +12,15 @@ const ViaticosPorPersonaSchema = yup.object().shape({
   dinner: yup.number().required(),
   isDinnerActive: yup.boolean().default(true).required(),
   accommodation: yup.number().required(),
+  isAccommodationActive: yup.boolean().default(true).required(),
   passage: yup.number().required(),
   total: yup.number().required(),
+  personId: yup.string().required(),
 });
 
 const ViaticosSchema = yup.object().shape({
-  people: yup.array().of(ViaticosPorPersonaSchema).min(2).required(),
-  tolls: yup.array().of(yup.number().required()).min(2).required(),
+  people: yup.array().of(ViaticosPorPersonaSchema).min(0).required(),
+  tolls: yup.array().of(yup.number().required()).min(0).required(),
   solicitudeDate: yup
     .date()
     .nullable()
@@ -83,6 +80,10 @@ const ViaticosSchema = yup.object().shape({
       return true;
     }),
 });
+
+export type ViaticosPorPersonaSchemaType = yup.InferType<
+  typeof ViaticosPorPersonaSchema
+>;
 
 export type ViaticosSchemaType = yup.InferType<typeof ViaticosSchema>;
 

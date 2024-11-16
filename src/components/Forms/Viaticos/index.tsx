@@ -2,21 +2,37 @@ import { CombustibleValues, TransporteValues } from '@/interfaces/viaticos';
 import {
   Box,
   Button,
+  Chip,
   Divider,
   FormControl,
   FormControlLabel,
   FormLabel,
+  OutlinedInput,
   Radio,
   RadioGroup,
+  Switch,
   TextField,
   Typography,
 } from '@mui/material';
 import { DatePicker, MobileTimePicker } from '@mui/x-date-pickers';
-import React, { useState } from 'react';
-import ViaticoPorPersonaInputs from './ViaticoPorPersonaInputs';
-import { useFormik } from 'formik';
-import ViaticosSchema, { ViaticosSchemaType } from './Viaticos.schema';
+import React from 'react';
+import { FieldArray, FormikProvider, useFormik } from 'formik';
+import ViaticosSchema, {
+  ViaticosPorPersonaSchemaType,
+  ViaticosSchemaType,
+} from './Viaticos.schema';
 import RutaDialog from '../Rutas';
+import { useFormularioStore } from '@/stores/formulario.store';
+import { retrieveUsers } from '@/api/user';
+import { useQuery } from 'react-query';
+import { FindAllUser } from '@/interfaces/users';
+import { retrieveFuel } from '@/api/fuel';
+import { Fuel } from '@/interfaces/fuel';
+import dayjs from 'dayjs';
+import Select from '@/components/Inputs/Select';
+import ViaticoPorPersonaInputs from './ViaticoPorPersonaInputs';
+import RemoveButton from '@/components/Buttons/RemoveButton';
+import AddButton from '@/components/Buttons/AddButton';
 
 const initialValues = {
   people: [],
@@ -38,7 +54,29 @@ const initialValues = {
 };
 
 function ViaticosForm() {
-  const [toggleRouteModal, setToggleRouteModal] = useState(false);
+  const formularioStore = useFormularioStore();
+  const [userSelector, setUserSelector] = React.useState<string[]>([]);
+  const [areTollsActive, setAreTollsActive] = React.useState(false);
+
+  const findUsersQuery = useQuery<FindAllUser[]>(
+    'findUsersQuery',
+    retrieveUsers,
+  );
+  const findFuelQuery = useQuery<Fuel[]>('findFuelQuery', retrieveFuel);
+
+  const userData = findUsersQuery.data ?? [];
+  const fuelData = findFuelQuery.data ?? [];
+
+  const fuelPrice = fuelData.map((fuel) => {
+    const mostRecentFuelHistory = fuel.fuel_histories.reduce((acc, curr) => {
+      return acc.created_at > curr.created_at ? acc : curr;
+    });
+
+    return {
+      type: fuel.type,
+      price: mostRecentFuelHistory.price ?? 0,
+    };
+  });
 
   const onSubmitHandler = () => {};
 
@@ -47,8 +85,6 @@ function ViaticosForm() {
     validationSchema: ViaticosSchema,
     onSubmit: onSubmitHandler,
   });
-
-  console.log(formik.values);
 
   return (
     <Box
@@ -60,7 +96,6 @@ function ViaticosForm() {
         overflow: 'hidden',
       }}
       component="form"
-      onSubmit={formik.handleSubmit}
     >
       <DatePicker
         label="Fecha de Solicitud"
@@ -81,7 +116,20 @@ function ViaticosForm() {
         helperText={formik.touched.dependency && formik.errors.dependency}
       />
 
-      <TextField label="Motivo de Visita" />
+      <TextField
+        label="Motivo de Visita"
+        name="visitMotivation"
+        onBlur={formik.handleBlur}
+        onChange={formik.handleChange}
+        value={formik.values.visitMotivation}
+        error={
+          formik.touched.visitMotivation &&
+          Boolean(formik.errors.visitMotivation)
+        }
+        helperText={
+          formik.touched.visitMotivation && formik.errors.visitMotivation
+        }
+      />
 
       <Box
         sx={{
@@ -154,46 +202,72 @@ function ViaticosForm() {
         }}
       >
         <Typography variant="h6">Lugar de Visita</Typography>
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'row',
-            gap: '.525rem',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <Typography variant="body1">Seleccione Una ruta</Typography>
-          <Button
-            variant="contained"
-            onClick={() => setToggleRouteModal((prev) => !prev)}
+        {formularioStore.ruta ? (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'row',
+              gap: '.525rem',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
           >
-            Seleccionar Ruta
-          </Button>
-        </Box>
-        {/* <Select
-          label="Selecciona la sede"
-          selectProps={{}}
-          menuItemsProps={[]}
-        />
-        <Select
-          label="Selecciona el punto de partida"
-          selectProps={{}}
-          menuItemsProps={[]}
-        />
-        <Select
-          label="Seleccione el lugar de visita"
-          selectProps={{}}
-          menuItemsProps={[]}
-        />
+            <Typography variant="body1">
+              {formularioStore.ruta.origen.name} -{' '}
+              {formularioStore.ruta.paradas
+                .map((parada) => parada.municipioName)
+                .join(' - ')}
+            </Typography>
 
-        <TextField label="Cantidad de Kilometros" />
-        <TextField label="Precio Combustible" />
-        <TextField label="Galones de Combustible" />
-        <TextField label="Cantidad de efectivo" /> */}
+            <Typography variant="body1">
+              Total kms:{' '}
+              {formularioStore.ruta.paradas.reduce((acc, curr) => {
+                return acc + curr.kms;
+              }, 0)}
+              {'km'}
+            </Typography>
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'row',
+              gap: '.525rem',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <Typography variant="body1">Seleccione Una ruta</Typography>
+            <Button
+              variant="contained"
+              onClick={() => formularioStore.setToggleModalRuta()}
+            >
+              Seleccionar Ruta
+            </Button>
+          </Box>
+        )}
       </Box>
-
       <Divider />
+
+      <Box
+        sx={{
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '.525rem',
+        }}
+      >
+        <TextField
+          label="Precio Combustible"
+          value={
+            fuelPrice.find((fp) => fp.type === formik.values.fuel)?.price ?? 0
+          }
+          disabled
+        />
+
+        <TextField label="Galones de Combustible" disabled />
+        <TextField label="Cantidad de efectivo" disabled />
+      </Box>
 
       {/*Hora  */}
       <Box
@@ -211,6 +285,11 @@ function ViaticosForm() {
           sx={{
             width: '100%',
           }}
+          name="departureTime"
+          onChange={(date) => {
+            formik.setFieldValue('departureTime', date?.toDate() ?? null);
+            formik.setFieldTouched('departureTime', true);
+          }}
         />
         <Typography variant="h6">-</Typography>
         <MobileTimePicker
@@ -219,26 +298,346 @@ function ViaticosForm() {
           sx={{
             width: '100%',
           }}
+          name="arrivalTime"
+          onChange={(date) => {
+            formik.setFieldValue('arrivalTime', date?.toDate() ?? null);
+            formik.setFieldTouched('arrivalTime', true);
+          }}
+          minTime={
+            formik.values.departureTime === null
+              ? undefined
+              : dayjs(formik.values.departureTime)
+          }
         />
       </Box>
 
-      <Box>
-        <Typography variant="h6">Solicitud por personas</Typography>
+      <FormikProvider value={formik}>
+        <Box>
+          <Typography variant="h6">Solicitud por personas</Typography>
 
-        <ViaticoPorPersonaInputs />
-      </Box>
+          <FieldArray name="people">
+            {(arrayHelpers) => {
+              return (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '.525rem',
+                  }}
+                >
+                  <Select
+                    menuItemsProps={
+                      userData.map((user) => ({
+                        label: user.first_name + ' ' + user.last_name,
+                        value: user.id,
+                      })) ?? []
+                    }
+                    label={'Seleccione un usuario'}
+                    selectProps={{
+                      multiple: true,
+                      input: (
+                        <OutlinedInput id="select-multiple-chip" label="Chip" />
+                      ),
+                      renderValue: (selected) => {
+                        const values = selected as string[];
+                        return (
+                          <Box
+                            sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}
+                          >
+                            {values.map((value) => {
+                              const user = userData.find((u) => u.id === value);
 
+                              const label =
+                                (user?.first_name ?? '') +
+                                ' ' +
+                                (user?.last_name ?? '');
+
+                              return <Chip key={value} label={label} />;
+                            })}
+                          </Box>
+                        );
+                      },
+                      MenuProps: {
+                        PaperProps: {
+                          style: {
+                            maxHeight: 48 * 4.5 + 8,
+                            width: 250,
+                          },
+                        },
+                      },
+                      value: userSelector,
+                      onChange: (e) => {
+                        const value: string[] = e.target.value as string[];
+                        setUserSelector(value);
+
+                        if (value.length > formik.values.people.length) {
+                          // TODO: Add new person
+                          const userIdToAdd = value.find(
+                            (userId) =>
+                              !formik.values.people.some(
+                                (person) => person.personId === userId,
+                              ),
+                          );
+
+                          if (userIdToAdd) {
+                            const data = userData.find(
+                              (user) => user.id === userIdToAdd,
+                            );
+
+                            if (data) {
+                              const {
+                                job_position: {
+                                  lunch,
+                                  name,
+                                  breakfast,
+                                  dinner,
+                                  accommodation,
+                                },
+                              } = data;
+
+                              const newPerson: ViaticosPorPersonaSchemaType = {
+                                personId: data.id,
+                                position: name,
+                                employeeName:
+                                  data.job_position_specification ?? '',
+                                fullName:
+                                  data.first_name + ' ' + data.last_name,
+                                isBreakfastActive: true,
+                                isLunchActive: true,
+                                isDinnerActive: true,
+                                breakfast,
+                                lunch,
+                                dinner,
+                                accommodation,
+                                isAccommodationActive: true,
+                                total:
+                                  lunch + breakfast + dinner + accommodation,
+                                passage: 0,
+                              };
+
+                              arrayHelpers.push(newPerson);
+                            }
+                          }
+                        } else {
+                          // TODO: Remove person
+                          const usersToDelete: ViaticosPorPersonaSchemaType[] =
+                            formik.values.people.reduce((acc, curr) => {
+                              if (!value.includes(curr.personId)) {
+                                acc = [...acc, curr];
+                              }
+
+                              return acc;
+                            }, [] as ViaticosPorPersonaSchemaType[]);
+
+                          usersToDelete.forEach((person) => {
+                            const index = formik.values.people.findIndex(
+                              (p) => p.personId === person.personId,
+                            );
+                            if (index !== -1) {
+                              arrayHelpers.remove(index);
+                            }
+                          });
+                        }
+                        //   value.includes(user.id),
+                        // );
+
+                        // const userFormik: ViaticosPorPersonaSchemaType[] =
+                        //   users.map((user) => {
+                        //     const userInForm = formik.values.people.find(
+                        //       (person) => person.personId === user.id,
+                        //     );
+
+                        //     if (userInForm) {
+                        //       return userInForm;
+                        //     }
+
+                        //     const {
+                        //       job_position: {
+                        //         lunch,
+                        //         name,
+                        //         breakfast,
+                        //         dinner,
+                        //         accommodation,
+                        //       },
+                        //     } = user;
+
+                        //     return {
+                        //       personId: user.id,
+                        //       position: name,
+                        //       employeeName:
+                        //         user.job_position_specification ?? '',
+                        //       fullName: user.first_name + ' ' + user.last_name,
+                        //       isBreakfastActive: true,
+                        //       isLunchActive: true,
+                        //       isDinnerActive: true,
+                        //       breakfast,
+                        //       lunch,
+                        //       dinner,
+                        //       accommodation,
+                        //       isAccommodationActive: true,
+                        //       total: lunch + breakfast + dinner + accommodation,
+                        //       passage: 0,
+                        //     };
+                        //   });
+
+                        // arrayHelpers.push();
+                      },
+                    }}
+                  />
+                  {formik.values.people.map((person, index) => {
+                    return (
+                      <ViaticoPorPersonaInputs
+                        key={person.personId}
+                        formik={formik}
+                        index={index}
+                      />
+                    );
+                  })}
+                </Box>
+              );
+            }}
+          </FieldArray>
+        </Box>
+
+        <Divider />
+
+        <FieldArray name="tolls">
+          {(arrayHelpers) => {
+            return (
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '.525rem',
+                }}
+              >
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    gap: '.525rem',
+                  }}
+                >
+                  <Typography variant="h6">Desea agregar peajes?</Typography>
+                  <Switch
+                    onChange={(e) => {
+                      setAreTollsActive(e.target.checked);
+
+                      if (!e.target.checked) {
+                        formik.setFieldValue('tolls', []);
+                      } else {
+                        arrayHelpers.push(0);
+                      }
+                    }}
+                    checked={areTollsActive}
+                  />
+                </Box>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '.525rem',
+                  }}
+                >
+                  {formik.values.tolls.map((toll, index) => {
+                    return (
+                      <Box
+                        key={`Peaje-${index}`}
+                        sx={{
+                          display: 'flex',
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          gap: '.525rem',
+                        }}
+                      >
+                        <TextField
+                          label={`Peaje ${index + 1}`}
+                          type="number"
+                          value={toll}
+                          sx={{
+                            width: '100%',
+                          }}
+                          name={`tolls[${index}]`}
+                          onChange={formik.handleChange}
+                          onBlur={formik.handleBlur}
+                        />
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            gap: '1rem',
+                          }}
+                        >
+                          <RemoveButton
+                            variant="outlined"
+                            onClick={() => {
+                              arrayHelpers.remove(index);
+                            }}
+                            disabled={formik.values.tolls.length === 1}
+                          />
+
+                          <AddButton
+                            variant="contained"
+                            onClick={() => {
+                              arrayHelpers.push(0);
+                            }}
+                          />
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Box>
+
+                {areTollsActive && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '.525rem',
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        gap: '.525rem',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          width: 'px',
+                        }}
+                        component="p"
+                      >
+                        Total de Peajes:{' '}
+                      </Typography>
+
+                      <Typography variant="h4" component="p">
+                        {formik.values.tolls.reduce((acc, curr) => {
+                          return acc + curr;
+                        }, 0)}
+                      </Typography>
+                    </Box>
+                    <Divider />
+                  </Box>
+                )}
+              </Box>
+            );
+          }}
+        </FieldArray>
+      </FormikProvider>
+      {/* 
       <TextField label="Peaje 1" type="number" disabled />
-      <TextField label="Peaje Total" type="number" disabled />
+      <TextField label="Peaje Total" type="number" disabled /> */}
 
       <Button variant="contained" type="submit">
         <Typography variant="body1">Guardar</Typography>
       </Button>
 
-      <RutaDialog
-        open={toggleRouteModal}
-        onClose={() => setToggleRouteModal(false)}
-      />
+      <RutaDialog />
     </Box>
   );
 }

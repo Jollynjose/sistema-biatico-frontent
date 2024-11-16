@@ -6,65 +6,93 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   Typography,
 } from '@mui/material';
 import React from 'react';
-import Paradas from '../Paradas';
 import * as yup from 'yup';
 import { FieldArray, Form, Formik, FormikProps } from 'formik';
 import AddButton from '@/components/Buttons/AddButton';
 import RemoveButton from '@/components/Buttons/RemoveButton';
+import { useQuery } from 'react-query';
+import { MunicipalityEntity } from '@/interfaces/municipality';
+import { getMunicipalities } from '@/api';
+import Origen from '../Origen';
+import RutaInput from '@/components/Inputs/ParadaInput';
+import { useFormularioStore } from '@/stores/formulario.store';
+
+const retrieveMunicipalities = async () => {
+  const response = await getMunicipalities();
+  return response?.results ?? [];
+};
 
 const validationsSchema = yup.object({
-  paradas: yup
-    .array()
-    .of(
-      yup.object({
-        region: yup.string().required('La region es requerida').min(1),
-        municipio: yup
-          .string()
-          .required('El municipio es requerido')
-          .nullable(),
-        kms: yup
-          .number()
-          .required('Los kilometros son requeridos')
-          .min(0)
-          .default(0),
-        id: yup.string().required(),
-      }),
-    )
-    .min(1),
+  ruta: yup.object({
+    origen: yup.string().required('El origen es requerido'),
+    paradas: yup
+      .array()
+      .of(
+        yup.object({
+          municipioId: yup
+            .string()
+            .required('El municipio es requerido')
+            .nullable(),
+          kms: yup
+            .number()
+            .required('Los kilometros son requeridos')
+            .min(0)
+            .default(0),
+          id: yup
+            .string()
+            .required('El id es requerido')
+            .default(Math.random().toString(36).substring(7)),
+        }),
+      )
+      .min(1),
+  }),
 });
 
-const INITIAL_VALUES = [
-  {
-    region: '',
-    municipio: '',
-    kms: 0,
-    id: Math.random().toString(),
+const INITIAL_VALUES = {
+  ruta: {
+    origen: '',
+    paradas: [
+      {
+        municipioId: '',
+        kms: 0,
+        id: Math.random().toString(36).substring(7),
+      },
+    ],
   },
-];
+};
 
 export type RutaFormikProps = FormikProps<{
-  paradas: {
-    region: string;
-    municipio: string;
-    kms: number;
-    id: string;
-  }[];
+  ruta: {
+    origen: string;
+    paradas: {
+      municipioId: string;
+      kms: number;
+      id: string;
+    }[];
+  };
 }>;
 
-interface RutaDialogProps {
-  open: boolean;
-  onClose: () => void;
-}
+export default function RutaDialog() {
+  const formularioStore = useFormularioStore();
 
-export default function RutaDialog({ open, onClose }: RutaDialogProps) {
-  // const [paradas, setParadas] = React.useState<string[]>([]);
+  const findMunicipalityByRegionCode = useQuery<MunicipalityEntity[]>(
+    `findMunicipality`,
+    () => retrieveMunicipalities(),
+  );
+
+  const data = findMunicipalityByRegionCode.data ?? [];
+
+  const onClose = () => {
+    formularioStore.setToggleModalRuta();
+  };
 
   return (
     <Dialog
-      open={open}
+      open={formularioStore.toggleModalRuta}
       onClose={onClose}
       PaperProps={{
         sx: {
@@ -75,147 +103,89 @@ export default function RutaDialog({ open, onClose }: RutaDialogProps) {
       }}
     >
       <Formik
-        initialValues={{
-          paradas: INITIAL_VALUES,
-        }}
+        initialValues={INITIAL_VALUES}
         onSubmit={(values) => {
-          console.log(values);
+          const ruta = {
+            origen: {
+              municipioId: values.ruta.origen,
+              name:
+                data.find((municipio) => municipio.id === values.ruta.origen)
+                  ?.name ?? '',
+            },
+            paradas: values.ruta.paradas.map((parada) => {
+              const municipio = data.find(
+                (municipio) => municipio.id === parada.municipioId,
+              );
+
+              return {
+                municipioId: parada.municipioId,
+                municipioName: municipio?.name ?? '',
+                kms: parada.kms,
+              };
+            }),
+          };
+
+          formularioStore.setRuta(ruta);
         }}
         validationSchema={validationsSchema}
       >
-        {(formikProps) => (
-          <Form>
-            <FieldArray name="paradas">
-              {(arrayHelper) => (
-                <>
-                  <DialogTitle
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '1rem',
-                    }}
-                  >
-                    <Typography variant="h5">Seleccionar Ruta</Typography>
-                  </DialogTitle>
+        {(formikProps) => {
+          return (
+            <Form>
+              <DialogTitle
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '1rem',
+                }}
+              >
+                <Typography variant="h5">Seleccionar Ruta</Typography>
+              </DialogTitle>
 
-                  <DialogContent
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '1rem',
-                      width: '100%',
-                      height: '100%',
-                      minHeight: '80%',
-                      minWidth: '80%',
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '1rem',
-                        minHeight: '100px',
-                        maxHeight: '190px',
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          overflowY: 'auto',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '.525rem',
-                        }}
-                      >
-                        {formikProps.values.paradas.map((parada, index) => (
-                          <Box
-                            key={parada.id}
-                            sx={{
-                              paddingRight: '1rem',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '1rem',
-                              pt: '.525rem',
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                gap: '1rem',
-                              }}
-                            >
-                              <Typography variant="h6">
-                                Parada {index + 1}
-                              </Typography>
+              <DialogContent
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1rem',
+                  width: '100%',
+                  height: '100%',
+                  minHeight: '80%',
+                  minWidth: '80%',
+                }}
+              >
+                <Origen formik={formikProps} data={data} />
 
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  gap: '1rem',
-                                }}
-                              >
-                                <RemoveButton
-                                  variant="outlined"
-                                  onClick={() => {
-                                    arrayHelper.remove(index);
-                                  }}
-                                  disabled={
-                                    formikProps.values.paradas.length === 1
-                                  }
-                                />
+                <Divider />
 
-                                <AddButton
-                                  variant="contained"
-                                  onClick={() => {
-                                    arrayHelper.push({
-                                      region: '',
-                                      municipio: '',
-                                      kms: 0,
-                                      id: Math.random().toString(),
-                                    });
-                                  }}
-                                />
-                              </Box>
-                            </Box>
-                            <Paradas formik={formikProps} index={index} />
-                          </Box>
-                        ))}
-                      </Box>
-                    </Box>
+                <Box
+                  sx={{
+                    height: '50px',
+                    width: '100%',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Typography variant="h6">Kilometros Totales:</Typography>
+                  <Typography variant="h3">
+                    {formikProps.values.ruta.paradas.reduce(
+                      (prev, current) => current.kms + prev,
+                      0,
+                    )}
+                  </Typography>
+                </Box>
+              </DialogContent>
 
-                    <Box
-                      sx={{
-                        height: '50px',
-                        width: '100%',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Typography variant="h6">Kilometros Totales:</Typography>
-                      <Typography variant="h3">
-                        {formikProps.values.paradas.reduce(
-                          (prev, current) => current.kms + prev,
-                          0,
-                        )}
-                      </Typography>
-                    </Box>
-                  </DialogContent>
-
-                  <DialogActions>
-                    <Button onClick={onClose}>Cerrar</Button>
-                    <Button type="submit" variant="contained">
-                      Aceptar
-                    </Button>
-                  </DialogActions>
-                </>
-              )}
-            </FieldArray>
-          </Form>
-        )}
+              <DialogActions>
+                <Button onClick={onClose}>Cerrar</Button>
+                <Button type="submit" variant="contained">
+                  Aceptar
+                </Button>
+              </DialogActions>
+            </Form>
+          );
+        }}
       </Formik>
     </Dialog>
   );

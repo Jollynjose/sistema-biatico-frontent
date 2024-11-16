@@ -1,9 +1,9 @@
 export enum TransporteValues {
-  INSTITUCIONAL = 'Institucional',
-  PARTICULAR = 'Particular',
+  INSTITUCIONAL = 'institionality',
+  PARTICULAR = 'particularity',
 }
 
 export enum CombustibleValues {
-  GASOLINA = 'Gasolina',
-  GASOIL = 'Gasoil',
+  GASOLINA = 'gasoline',
+  GASOIL = 'diesel',
 }
