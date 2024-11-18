@@ -7,93 +7,71 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  FormControl,
+  TextareaAutosize,
+  TextField,
   Typography,
 } from '@mui/material';
 import React from 'react';
 import * as yup from 'yup';
-import { FieldArray, Form, Formik, FormikProps } from 'formik';
-import AddButton from '@/components/Buttons/AddButton';
-import RemoveButton from '@/components/Buttons/RemoveButton';
+import { Form, Formik, FormikProps } from 'formik';
 import { useQuery } from 'react-query';
-import { MunicipalityEntity } from '@/interfaces/municipality';
-import { getMunicipalities } from '@/api';
 import Origen from '../Origen';
-import RutaInput from '@/components/Inputs/ParadaInput';
-import { useFormularioStore } from '@/stores/formulario.store';
-
-const retrieveMunicipalities = async () => {
-  const response = await getMunicipalities();
-  return response?.results ?? [];
-};
+import { RutaState, useFormularioStore } from '@/stores/formulario.store';
+import { ProvinceEntity } from '@/interfaces/province';
+import { retrieveProvinces } from '@/api/province';
+import { roboto } from '@/themes';
 
 const validationsSchema = yup.object({
   ruta: yup.object({
     origen: yup.string().required('El origen es requerido'),
-    paradas: yup
-      .array()
-      .of(
-        yup.object({
-          municipioId: yup
-            .string()
-            .required('El municipio es requerido')
-            .nullable(),
-          kms: yup
-            .number()
-            .required('Los kilometros son requeridos')
-            .min(0)
-            .default(0),
-          id: yup
-            .string()
-            .required('El id es requerido')
-            .default(Math.random().toString(36).substring(7)),
-        }),
-      )
-      .min(1),
+    destino: yup.string().required('El destino es requerido'),
+    comentario: yup.string().optional(),
+    kms: yup
+      .number()
+      .required('Los KMS son requeridos')
+      .min(1, 'Debe ser mayor a 0'),
   }),
 });
 
 const INITIAL_VALUES = {
   ruta: {
     origen: '',
-    paradas: [
-      {
-        municipioId: '',
-        kms: 0,
-        id: Math.random().toString(36).substring(7),
-      },
-    ],
+    destino: '',
+    comentario: '',
+    kms: 0,
   },
 };
 
 export type RutaFormikProps = FormikProps<{
   ruta: {
     origen: string;
-    paradas: {
-      municipioId: string;
-      kms: number;
-      id: string;
-    }[];
+    destino: string;
+    comentario: string;
+    kms: number;
   };
 }>;
 
-export default function RutaDialog() {
+interface Props {
+  onClose: (ruta?: RutaState) => void;
+}
+
+export default function RutaDialog({ onClose }: Props) {
   const formularioStore = useFormularioStore();
 
-  const findMunicipalityByRegionCode = useQuery<MunicipalityEntity[]>(
-    `findMunicipality`,
-    () => retrieveMunicipalities(),
+  const findAllProvinces = useQuery<ProvinceEntity[]>(
+    'findAllProvinces',
+    retrieveProvinces,
   );
 
-  const data = findMunicipalityByRegionCode.data ?? [];
-
-  const onClose = () => {
-    formularioStore.setToggleModalRuta();
-  };
+  const data = findAllProvinces.data ?? [];
 
   return (
     <Dialog
       open={formularioStore.toggleModalRuta}
-      onClose={onClose}
+      onClose={() => {
+        onClose();
+      }}
       PaperProps={{
         sx: {
           minWidth: '50%',
@@ -105,31 +83,27 @@ export default function RutaDialog() {
       <Formik
         initialValues={INITIAL_VALUES}
         onSubmit={(values) => {
-          const ruta = {
-            origen: {
-              municipioId: values.ruta.origen,
-              name:
-                data.find((municipio) => municipio.id === values.ruta.origen)
-                  ?.name ?? '',
-            },
-            paradas: values.ruta.paradas.map((parada) => {
-              const municipio = data.find(
-                (municipio) => municipio.id === parada.municipioId,
-              );
-
-              return {
-                municipioId: parada.municipioId,
-                municipioName: municipio?.name ?? '',
-                kms: parada.kms,
-              };
-            }),
+          const ruta: RutaState = {
+            origen: values.ruta.origen,
+            destino: values.ruta.destino,
+            comentario: values.ruta.comentario,
+            kms: values.ruta.kms,
           };
 
-          formularioStore.setRuta(ruta);
+          onClose(ruta);
         }}
         validationSchema={validationsSchema}
       >
         {(formikProps) => {
+          const isOrigenError = Boolean(
+            formikProps.touched.ruta?.origen && formikProps.errors.ruta?.origen,
+          );
+
+          const isDestinoError = Boolean(
+            formikProps.touched.ruta?.destino &&
+              formikProps.errors.ruta?.destino,
+          );
+
           return (
             <Form>
               <DialogTitle
@@ -154,31 +128,101 @@ export default function RutaDialog() {
                   minWidth: '80%',
                 }}
               >
-                <Origen formik={formikProps} data={data} />
+                <Origen
+                  data={data}
+                  selectProps={{
+                    sx: {
+                      width: '100%',
+                      borderColor: isOrigenError ? 'red !important' : 'inherit',
+                    },
+                    onChange: formikProps.handleChange,
+                    onBlur: formikProps.handleBlur,
+                    name: 'ruta.origen',
+                    MenuProps: {
+                      sx: {
+                        maxHeight: '400px',
+                      },
+                    },
+                  }}
+                  label="Origen"
+                />
+
+                <Origen
+                  data={data}
+                  selectProps={{
+                    sx: {
+                      width: '100%',
+                      borderColor: isDestinoError ? 'red' : 'inherit',
+                    },
+                    onChange: formikProps.handleChange,
+                    onBlur: formikProps.handleBlur,
+                    name: 'ruta.destino',
+                    MenuProps: {
+                      sx: {
+                        maxHeight: '400px',
+                      },
+                    },
+                  }}
+                  label="Destino"
+                />
 
                 <Divider />
 
                 <Box
                   sx={{
-                    height: '50px',
-                    width: '100%',
                     display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
+                    flexDirection: 'row',
+                    gap: '1rem',
                   }}
                 >
-                  <Typography variant="h6">Kilometros Totales:</Typography>
-                  <Typography variant="h3">
-                    {formikProps.values.ruta.paradas.reduce(
-                      (prev, current) => current.kms + prev,
-                      0,
-                    )}
-                  </Typography>
+                  <FormControl fullWidth>
+                    <TextareaAutosize
+                      placeholder="Comentario"
+                      minRows={5}
+                      maxRows={10}
+                      style={{
+                        background: 'white',
+                        color: 'black',
+                        fontSize: '1rem',
+                        ...roboto.style,
+                        padding: '1rem',
+                      }}
+                      name="ruta.comentario"
+                      onChange={formikProps.handleChange}
+                      onBlur={formikProps.handleBlur}
+                    />
+                  </FormControl>
+
+                  <TextField
+                    label="KMS"
+                    type="number"
+                    sx={{
+                      width: '200px',
+                    }}
+                    name="ruta.kms"
+                    onChange={formikProps.handleChange}
+                    onBlur={formikProps.handleBlur}
+                    value={formikProps.values.ruta.kms}
+                    error={
+                      formikProps.touched.ruta?.kms &&
+                      Boolean(formikProps.errors.ruta?.kms)
+                    }
+                    helperText={
+                      formikProps.touched.ruta?.kms &&
+                      formikProps.errors.ruta?.kms
+                    }
+                  />
                 </Box>
               </DialogContent>
 
               <DialogActions>
-                <Button onClick={onClose}>Cerrar</Button>
+                <Button
+                  onClick={() => {
+                    onClose();
+                  }}
+                >
+                  Cerrar
+                </Button>
                 <Button type="submit" variant="contained">
                   Aceptar
                 </Button>

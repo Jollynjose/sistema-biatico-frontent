@@ -22,7 +22,7 @@ import ViaticosSchema, {
   ViaticosSchemaType,
 } from './Viaticos.schema';
 import RutaDialog from '../Rutas';
-import { useFormularioStore } from '@/stores/formulario.store';
+import { RutaState, useFormularioStore } from '@/stores/formulario.store';
 import { retrieveUsers } from '@/api/user';
 import { useQuery } from 'react-query';
 import { FindAllUser } from '@/interfaces/users';
@@ -33,6 +33,9 @@ import Select from '@/components/Inputs/Select';
 import ViaticoPorPersonaInputs from './ViaticoPorPersonaInputs';
 import RemoveButton from '@/components/Buttons/RemoveButton';
 import AddButton from '@/components/Buttons/AddButton';
+import { retrieveProvinces } from '@/api/province';
+import { ProvinceEntity } from '@/interfaces/province';
+import { getFuelCalculated, getFuelGallons } from '@/helpers/calculos';
 
 const initialValues = {
   people: [],
@@ -42,15 +45,14 @@ const initialValues = {
   dependency: '',
   transportation: TransporteValues.INSTITUCIONAL,
   fuel: CombustibleValues.GASOLINA,
-  site: '',
   startPoint: '',
   visitPlace: '',
   kilometers: 0,
   fuelPrice: 0,
   fuelGallons: 0,
-  cashAmount: 0,
   departureTime: null,
   arrivalTime: null,
+  fuelTotalPrice: 0,
 };
 
 function ViaticosForm() {
@@ -63,9 +65,13 @@ function ViaticosForm() {
     retrieveUsers,
   );
   const findFuelQuery = useQuery<Fuel[]>('findFuelQuery', retrieveFuel);
-
+  const findAllProvinces = useQuery<ProvinceEntity[]>(
+    'findAllProvinces',
+    retrieveProvinces,
+  );
   const userData = findUsersQuery.data ?? [];
   const fuelData = findFuelQuery.data ?? [];
+  const provinceData = findAllProvinces.data ?? [];
 
   const fuelPrice = fuelData.map((fuel) => {
     const mostRecentFuelHistory = fuel.fuel_histories.reduce((acc, curr) => {
@@ -78,13 +84,49 @@ function ViaticosForm() {
     };
   });
 
-  const onSubmitHandler = () => {};
-
   const formik = useFormik({
-    initialValues: initialValues as unknown as ViaticosSchemaType,
+    initialValues: {
+      ...initialValues,
+      fuelPrice:
+        fuelPrice.find((fp) => fp.type === CombustibleValues.GASOLINA)?.price ??
+        0,
+    } as unknown as ViaticosSchemaType,
     validationSchema: ViaticosSchema,
-    onSubmit: onSubmitHandler,
+    onSubmit: (values) => {
+      console.log(values);
+    },
   });
+
+  const onClose = async (ruta?: RutaState) => {
+    if (ruta) {
+      const gallons = getFuelGallons(ruta.kms);
+      const fuelPrice = getFuelCalculated(formik.values.fuelPrice, ruta.kms);
+
+      formularioStore.setRuta(ruta);
+
+      await formik.setValues({
+        ...formik.values,
+        fuelTotalPrice: Number(fuelPrice),
+        fuelGallons: gallons,
+        startPoint: ruta.origen,
+        visitPlace: ruta.destino,
+        kilometers: ruta.kms,
+        comentary: ruta.comentario,
+      });
+
+      await formik.setTouched({
+        ...formik.touched,
+        fuelTotalPrice: true,
+        fuelGallons: true,
+        startPoint: true,
+        visitPlace: true,
+        kilometers: true,
+        comentary: true,
+      });
+    }
+
+    formularioStore.setToggleModalRuta();
+  };
 
   return (
     <Box
@@ -94,6 +136,10 @@ function ViaticosForm() {
         gap: '.525rem',
         width: { xs: '100%', md: '50%' },
         overflow: 'hidden',
+      }}
+      onSubmit={(e) => {
+        e.preventDefault();
+        formik.handleSubmit(e);
       }}
       component="form"
     >
@@ -206,25 +252,46 @@ function ViaticosForm() {
           <Box
             sx={{
               display: 'flex',
-              flexDirection: 'row',
+              flexDirection: 'column',
               gap: '.525rem',
-              alignItems: 'center',
-              justifyContent: 'space-between',
+              alignItems: 'start',
             }}
           >
-            <Typography variant="body1">
-              {formularioStore.ruta.origen.name} -{' '}
-              {formularioStore.ruta.paradas
-                .map((parada) => parada.municipioName)
-                .join(' - ')}
-            </Typography>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'row',
+                gap: '.525rem',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+              }}
+            >
+              <Typography variant="body1">
+                {
+                  provinceData.find(
+                    (p) => p.id === formularioStore.ruta?.origen,
+                  )?.name
+                }{' '}
+                -{' '}
+                {
+                  provinceData.find(
+                    (p) => p.id === formularioStore.ruta?.destino,
+                  )?.name
+                }{' '}
+                Distancia de {formularioStore.ruta?.kms} km
+              </Typography>
 
-            <Typography variant="body1">
-              Total kms:{' '}
-              {formularioStore.ruta.paradas.reduce((acc, curr) => {
-                return acc + curr.kms;
-              }, 0)}
-              {'km'}
+              <Button
+                variant="contained"
+                onClick={() => formularioStore.setToggleModalRuta()}
+              >
+                Cambiar Ruta
+              </Button>
+            </Box>
+
+            <Typography variant="body2">
+              Comentario: {formularioStore.ruta.comentario}
             </Typography>
           </Box>
         ) : (
@@ -265,8 +332,16 @@ function ViaticosForm() {
           disabled
         />
 
-        <TextField label="Galones de Combustible" disabled />
-        <TextField label="Cantidad de efectivo" disabled />
+        <TextField
+          label="Galones de Combustible"
+          disabled
+          value={formik.values.fuelGallons}
+        />
+        <TextField
+          label="Cantidad de efectivo"
+          disabled
+          value={formik.values.fuelTotalPrice}
+        />
       </Box>
 
       {/*Hora  */}
@@ -438,49 +513,6 @@ function ViaticosForm() {
                             }
                           });
                         }
-                        //   value.includes(user.id),
-                        // );
-
-                        // const userFormik: ViaticosPorPersonaSchemaType[] =
-                        //   users.map((user) => {
-                        //     const userInForm = formik.values.people.find(
-                        //       (person) => person.personId === user.id,
-                        //     );
-
-                        //     if (userInForm) {
-                        //       return userInForm;
-                        //     }
-
-                        //     const {
-                        //       job_position: {
-                        //         lunch,
-                        //         name,
-                        //         breakfast,
-                        //         dinner,
-                        //         accommodation,
-                        //       },
-                        //     } = user;
-
-                        //     return {
-                        //       personId: user.id,
-                        //       position: name,
-                        //       employeeName:
-                        //         user.job_position_specification ?? '',
-                        //       fullName: user.first_name + ' ' + user.last_name,
-                        //       isBreakfastActive: true,
-                        //       isLunchActive: true,
-                        //       isDinnerActive: true,
-                        //       breakfast,
-                        //       lunch,
-                        //       dinner,
-                        //       accommodation,
-                        //       isAccommodationActive: true,
-                        //       total: lunch + breakfast + dinner + accommodation,
-                        //       passage: 0,
-                        //     };
-                        //   });
-
-                        // arrayHelpers.push();
                       },
                     }}
                   />
@@ -629,15 +661,12 @@ function ViaticosForm() {
           }}
         </FieldArray>
       </FormikProvider>
-      {/* 
-      <TextField label="Peaje 1" type="number" disabled />
-      <TextField label="Peaje Total" type="number" disabled /> */}
 
       <Button variant="contained" type="submit">
         <Typography variant="body1">Guardar</Typography>
       </Button>
 
-      <RutaDialog />
+      <RutaDialog onClose={onClose} />
     </Box>
   );
 }

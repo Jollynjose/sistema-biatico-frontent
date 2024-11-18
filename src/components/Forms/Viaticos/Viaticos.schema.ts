@@ -3,7 +3,7 @@ import * as yup from 'yup';
 
 const ViaticosPorPersonaSchema = yup.object().shape({
   position: yup.string().required(),
-  employeeName: yup.string().required(),
+  employeeName: yup.string().optional(),
   fullName: yup.string().required(),
   breakfast: yup.number().required(),
   isBreakfastActive: yup.boolean().default(true).required(),
@@ -46,13 +46,11 @@ const ViaticosSchema = yup.object().shape({
     .oneOf([CombustibleValues.GASOLINA, CombustibleValues.GASOIL])
     .default(CombustibleValues.GASOLINA)
     .required(),
-  site: yup.string().required(),
   startPoint: yup.string().required(),
   visitPlace: yup.string().required(),
   kilometers: yup.number().min(0).required(),
   fuelPrice: yup.number().min(0).required(),
-  fuelGallons: yup.number().min(1).required(),
-  cashAmount: yup.number().min(0).required(),
+  fuelGallons: yup.number().min(0).required(),
   departureTime: yup
     .date()
     .nullable()
@@ -79,6 +77,8 @@ const ViaticosSchema = yup.object().shape({
       }
       return true;
     }),
+  fuelTotalPrice: yup.number().min(0).required(),
+  comentary: yup.string().optional(),
 });
 
 export type ViaticosPorPersonaSchemaType = yup.InferType<

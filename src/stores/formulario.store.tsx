@@ -1,15 +1,10 @@
 import { create } from 'zustand';
 
 export interface RutaState {
-  origen: {
-    municipioId: string;
-    name: string;
-  };
-  paradas: {
-    municipioId: string;
-    kms: number;
-    municipioName: string;
-  }[];
+  origen: string;
+  destino: string;
+  comentario: string;
+  kms: number;
 }
 
 interface FormularioState {

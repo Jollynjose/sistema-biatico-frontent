@@ -12,8 +12,6 @@ interface Props {
 function ViaticoPorPersonaInputs({ formik, index }: Props) {
   const person = formik.values.people[index];
 
-  console.log(person);
-
   return (
     <Box
       sx={{
