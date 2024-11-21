@@ -15,6 +15,7 @@ import Link from 'next/link';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import Head from 'next/head';
 import { ROUTES } from '@/interfaces/auth';
+import { useSession } from 'next-auth/react';
 
 const pages: Array<{ text: string; path: string }> = [
   {
@@ -35,6 +36,8 @@ function Header() {
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(
     null,
   );
+  const { status } = useSession();
+  console.log('status:', status)
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElNav(event.currentTarget);
@@ -145,6 +148,33 @@ function Header() {
                 <Link href={page.path}> {page.text}</Link>
               </Button>
             ))}
+
+            {status === 'authenticated' && (
+              <Button
+                onClick={handleCloseNavMenu}
+                sx={{ color: 'white', display: 'block' }}
+              >
+                <Link href={ROUTES.DASHBOARD}>Dashboard</Link>
+              </Button>
+            )}
+
+            {status === 'unauthenticated' && (
+              <>
+                <Button
+                  onClick={handleCloseNavMenu}
+                  sx={{ color: 'white', display: 'block' }}
+                >
+                  <Link href={ROUTES.SIGNIN}>Iniciar Sesión</Link>
+                </Button>
+
+                <Button
+                  onClick={handleCloseNavMenu}
+                  sx={{ color: 'white', display: 'block' }}
+                >
+                  <Link href={ROUTES.SIGNUP}>Registrarse</Link>
+                </Button>
+              </>
+            )}
           </Box>
           <Box sx={{ flexGrow: 0 }}>
             <Tooltip title="Open settings">
