@@ -2,13 +2,8 @@ import { CombustibleValues, TransporteValues } from '@/interfaces/viaticos';
 import * as yup from 'yup';
 
 const ViaticosPorPersonaSchema = yup.object().shape({
-  position: yup
-    .array()
-    .of(yup.string().required())
-    .min(1)
-    .nonNullable()
-    .required(),
-  employeeName: yup.string().required(),
+  position: yup.string().required(),
+  employeeName: yup.string().optional(),
   fullName: yup.string().required(),
   breakfast: yup.number().required(),
   isBreakfastActive: yup.boolean().default(true).required(),
@@ -17,13 +12,15 @@ const ViaticosPorPersonaSchema = yup.object().shape({
   dinner: yup.number().required(),
   isDinnerActive: yup.boolean().default(true).required(),
   accommodation: yup.number().required(),
+  isAccommodationActive: yup.boolean().default(true).required(),
   passage: yup.number().required(),
   total: yup.number().required(),
+  personId: yup.string().required(),
 });
 
 const ViaticosSchema = yup.object().shape({
-  people: yup.array().of(ViaticosPorPersonaSchema).min(2).required(),
-  tolls: yup.array().of(yup.number().required()).min(2).required(),
+  people: yup.array().of(ViaticosPorPersonaSchema).min(0).required(),
+  tolls: yup.array().of(yup.number().required()).min(0).required(),
   solicitudeDate: yup
     .date()
     .nullable()
@@ -49,13 +46,11 @@ const ViaticosSchema = yup.object().shape({
     .oneOf([CombustibleValues.GASOLINA, CombustibleValues.GASOIL])
     .default(CombustibleValues.GASOLINA)
     .required(),
-  site: yup.string().required(),
   startPoint: yup.string().required(),
   visitPlace: yup.string().required(),
   kilometers: yup.number().min(0).required(),
   fuelPrice: yup.number().min(0).required(),
-  fuelGallons: yup.number().min(1).required(),
-  cashAmount: yup.number().min(0).required(),
+  fuelGallons: yup.number().min(0).required(),
   departureTime: yup
     .date()
     .nullable()
@@ -82,7 +77,13 @@ const ViaticosSchema = yup.object().shape({
       }
       return true;
     }),
+  fuelTotalPrice: yup.number().min(0).required(),
+  comentary: yup.string().optional(),
 });
+
+export type ViaticosPorPersonaSchemaType = yup.InferType<
+  typeof ViaticosPorPersonaSchema
+>;
 
 export type ViaticosSchemaType = yup.InferType<typeof ViaticosSchema>;
 

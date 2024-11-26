@@ -1,9 +1,25 @@
+import { retrieveFuel } from '@/api/fuel';
+import { retrieveUsers } from '@/api/user';
 import ViaticosForm from '@/components/Forms/Viaticos';
 import DefaultLayout from '@/components/Layouts/DefaultLayout';
+import LoadingBackdrop from '@/components/LoadingBackdrop';
+import { FuelHistory } from '@/interfaces/fuel';
+import { UserEntity } from '@/interfaces/users';
 import { Box, Button, Divider, Typography } from '@mui/material';
 import React from 'react';
+import { useQuery } from 'react-query';
 
 function Home() {
+  const findUsersQuery = useQuery<UserEntity[]>(
+    'findUsersQuery',
+    retrieveUsers,
+  );
+  const findFuelQuery = useQuery<FuelHistory[]>('findFuelQuery', retrieveFuel);
+
+  if (findUsersQuery.isLoading || findFuelQuery.isLoading) {
+    return <LoadingBackdrop />;
+  }
+
   return (
     <DefaultLayout>
       <Box

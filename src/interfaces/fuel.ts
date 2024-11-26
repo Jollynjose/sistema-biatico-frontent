@@ -14,3 +14,5 @@ export interface Fuel {
   name: string;
   fuel_histories: FuelHistory[];
 }
+
+export type fuelType = 'diesel' | 'gasoline';

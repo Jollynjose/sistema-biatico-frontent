@@ -1,8 +1,12 @@
 import React, { PropsWithChildren } from 'react';
 import Header from './Header';
 import { Box } from '@mui/material';
+import { useUIStore } from '@/stores/ui.store';
+import LoadingBackdrop from '../LoadingBackdrop';
 
 function DefaultLayout({ children }: PropsWithChildren) {
+  const uiStore = useUIStore();
+
   return (
     <Box>
       <Header />
@@ -14,6 +18,8 @@ function DefaultLayout({ children }: PropsWithChildren) {
         }}
       >
         {children}
+
+        {uiStore.toggleLoading && <LoadingBackdrop />}
       </Box>
     </Box>
   );
