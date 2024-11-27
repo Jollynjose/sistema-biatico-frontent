@@ -29,4 +29,5 @@ export interface FindAllUserJobPosition {
   breakfast: number;
   dinner: number;
   accommodation: number;
+  job_position_history_id: string;
 }

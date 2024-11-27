@@ -1,13 +1,12 @@
-import { NextApiRequest, NextApiResponse } from 'next'
-import { instance } from '@/shared/axiosInstance'
+import { NextApiRequest, NextApiResponse } from 'next';
+import { instance } from '@/shared/axiosInstance';
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
 ) {
   if (req.method === 'POST') {
     try {
-      console.log('Cuerpo de la solicitud:', req.body);
       const response = await instance.post('/fuel-history/create', req.body);
       res.status(200).json(response.data);
     } catch (error) {

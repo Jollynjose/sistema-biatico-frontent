@@ -12,10 +12,10 @@ import {
 import { SetStateAction } from 'react';
 import axios from 'axios';
 import { User } from '@/interfaces/user';
-import { signupValidationSchema } from '../../helper/validations';
-import { defaultValues } from '../helper/defaultValues';
 import { useJobPositions } from '@/hook/useJobPositions';
 import { JobPosition } from '@/interfaces/job-position';
+import { defaultValues } from '@/helpers/defaultValues';
+import { signupValidationSchema } from '@/helpers/validations';
 
 interface SignupFormProps {
   setSnackbar: SetStateAction<any>;
@@ -23,7 +23,7 @@ interface SignupFormProps {
 
 interface UserFields extends User {
   job_position: string;
-  confirm_password: string
+  confirm_password: string;
 }
 
 type UserObject = Omit<UserFields, 'job_position_id'>;
@@ -35,8 +35,10 @@ const SignupForm: React.FC<SignupFormProps> = ({ setSnackbar }) => {
     const { confirm_password, job_position, ...rest } = values;
 
     try {
-      const response = await axios.post('/api/auth/signup', { ...rest, job_position_id: job_position });
-      console.log('response:', response.data);
+      const response = await axios.post('/api/auth/signup', {
+        ...rest,
+        job_position_id: job_position,
+      });
 
       setSnackbar({
         open: true,
@@ -44,7 +46,6 @@ const SignupForm: React.FC<SignupFormProps> = ({ setSnackbar }) => {
         severity: 'success',
       });
     } catch (error) {
-      console.log('error:', error);
       setSnackbar({
         open: true,
         message: 'Error during registration.',
@@ -118,11 +119,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ setSnackbar }) => {
             id="confirm_password"
             required
           />
-          <ErrorMessage
-            name="confirm_password"
-            component="div"
-            style={{ color: 'red' }}
-          />
+          <ErrorMessage name="confirm_password" component="div" />
         </FormControl>
 
         <FormControl fullWidth margin="normal">
@@ -155,15 +152,13 @@ const SignupForm: React.FC<SignupFormProps> = ({ setSnackbar }) => {
             id="job_position"
           >
             {jobPositions?.map((i: JobPosition) => (
-              <MenuItem key={i.id} value={i.id}>{i.name}</MenuItem>
+              <MenuItem key={i.id} value={i.id}>
+                {i.name}
+              </MenuItem>
             ))}
           </Field>
 
-          <ErrorMessage
-            name="job_position"
-            component="div"
-            style={{ color: 'red' }}
-          />
+          <ErrorMessage name="job_position" component="div" />
         </FormControl>
 
         <Button

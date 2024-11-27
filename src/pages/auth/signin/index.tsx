@@ -11,16 +11,20 @@ import { styled } from '@mui/material/styles';
 import DefaultLayout from '@/components/Layouts/DefaultLayout';
 import { userFields } from '@/shared/userFields';
 import { Formik, Field, Form, ErrorMessage } from 'formik';
-import { signinValidationSchema } from '../helper/validations';
+import { signinValidationSchema } from '../../../helpers/validations';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
-const loginFields = userFields.filter(field => ["email", "password"].includes(field)).reverse();
+const loginFields = userFields
+  .filter((field) => ['email', 'password'].includes(field))
+  .reverse();
 
 const capitalizeAndReplace = (input: string) => {
   const firstCharacterPattern = /^./;
-  return input.replaceAll('_', ' ').replace(firstCharacterPattern, char => char.toUpperCase());
-}
+  return input
+    .replaceAll('_', ' ')
+    .replace(firstCharacterPattern, (char) => char.toUpperCase());
+};
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -73,20 +77,20 @@ function Signin() {
     if (status === 'authenticated') router.push('/dashboard');
   }, [status, router]);
 
-  const handleSubmit = async (values: { email: string, password: string }) => {
+  const handleSubmit = async (values: { email: string; password: string }) => {
     setAuthError(null); // Reset error state
-    const res = await signIn("credentials", {
+    const res = await signIn('credentials', {
       email: values.email,
       password: values.password,
       redirect: false,
     });
 
     if (res?.error) {
-      setAuthError("Invalid email or password. Please try again.");
+      setAuthError('Invalid email or password. Please try again.');
     }
 
     if (res?.ok) {
-      router.push("/dashboard");
+      router.push('/dashboard');
     }
   };
 
@@ -114,7 +118,9 @@ function Signin() {
               >
                 {loginFields.map((inputField, index) => (
                   <FormControl key={index}>
-                    <FormLabel htmlFor={inputField}>{capitalizeAndReplace(inputField)}</FormLabel>
+                    <FormLabel htmlFor={inputField}>
+                      {capitalizeAndReplace(inputField)}
+                    </FormLabel>
                     <Field
                       as={TextField}
                       autoComplete={inputField}
@@ -125,11 +131,7 @@ function Signin() {
                       type={inputField}
                     />
 
-                    <ErrorMessage
-                      component="div"
-                      style={{ color: 'red' }}
-                      name={inputField}
-                    />
+                    <ErrorMessage component="div" name={inputField} />
                   </FormControl>
                 ))}
 
@@ -143,11 +145,7 @@ function Signin() {
                   </Typography>
                 )}
 
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                >
+                <Button type="submit" fullWidth variant="contained">
                   Sign in
                 </Button>
               </Box>
@@ -160,4 +158,3 @@ function Signin() {
 }
 
 export default Signin;
-

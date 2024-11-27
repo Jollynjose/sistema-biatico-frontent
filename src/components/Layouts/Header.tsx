@@ -37,7 +37,6 @@ function Header() {
     null,
   );
   const { status } = useSession();
-  console.log('status:', status)
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElNav(event.currentTarget);

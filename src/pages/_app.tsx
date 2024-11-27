@@ -10,7 +10,6 @@ const queryClient = new QueryClient();
 
 export default function App({
   Component,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   pageProps: { session, ...pageProps },
 }: AppProps) {
   return (
@@ -20,4 +19,3 @@ export default function App({
     </Provider>
   );
 }
-

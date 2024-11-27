@@ -1,10 +1,18 @@
 import React, { FC } from 'react';
 import { useUsers } from '@/hook/useUsers';
 import { User } from '@/interfaces/user';
-import { Button, TextField, Select, MenuItem, InputLabel, FormControl, Stack } from '@mui/material';
+import {
+  Button,
+  TextField,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl,
+  Stack,
+} from '@mui/material';
 import axios from 'axios';
 import { useJobPositions } from '@/hook/useJobPositions';
-import DataTable from './components/DataTable';
+import DataTable from '../../components/DataTable';
 import { Formik, Form, Field } from 'formik';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
 
@@ -18,16 +26,22 @@ interface UserForm {
 
 const Users: FC = () => {
   const { users, isLoading, error, refetch, isRefetching } = useUsers();
-  const { jobPositions } = useJobPositions()
+  const { jobPositions } = useJobPositions();
 
-  const handleSaveUser = async (user: UserForm, id: string, initialValues: UserForm) => {
+  const handleSaveUser = async (
+    user: { [key: string]: any },
+    id: string,
+    initialValues: { [key: string]: any },
+  ) => {
     try {
       const updatedUser = Object.keys(user).reduce((acc, key) => {
+        const value = user[key];
+
         if (user[key] !== initialValues[key]) {
           acc[key] = user[key];
         }
         return acc;
-      }, {} as UserForm);
+      }, {} as { [key: string]: any });
 
       if (Object.keys(updatedUser).length > 0) {
         await axios.put(`/api/user/${id}`, updatedUser);
@@ -39,7 +53,11 @@ const Users: FC = () => {
   };
 
   const columns = [
-    { header: 'Nombre', accessor: 'first_name', render: (user) => `${user.first_name} ${user.last_name}` },
+    {
+      header: 'Nombre',
+      accessor: 'first_name',
+      render: (user: User) => `${user.first_name} ${user.last_name}`,
+    },
     { header: 'Email', accessor: 'email' },
     {
       header: 'Job Position',
@@ -48,10 +66,16 @@ const Users: FC = () => {
         jobPositions?.find((i) => i.id === user.job_position_id)?.name || 'N/A',
     },
     { header: 'Rol', accessor: 'role' },
-  ]
+  ];
 
   const collapsibleContent = (user: User) => (
-    <div style={{ padding: '20px', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
+    <div
+      style={{
+        padding: '20px',
+        backgroundColor: '#f5f5f5',
+        borderRadius: '8px',
+      }}
+    >
       <h3>Editar Usuario</h3>
       <Formik
         initialValues={{
@@ -65,7 +89,12 @@ const Users: FC = () => {
       >
         {({ handleChange, values }) => (
           <Form>
-            <Stack direction="row" spacing={2} sx={{ width: '100%' }} marginTop={2}>
+            <Stack
+              direction="row"
+              spacing={2}
+              sx={{ width: '100%' }}
+              marginTop={2}
+            >
               <Field
                 name="first_name"
                 as={TextField}
@@ -123,8 +152,7 @@ const Users: FC = () => {
     </div>
   );
 
-
-  if (isLoading || isRefetching) return <LoadingBackdrop />
+  if (isLoading || isRefetching) return <LoadingBackdrop />;
   if (error) return <div>Error loading data</div>;
 
   return (
@@ -139,4 +167,3 @@ const Users: FC = () => {
 };
 
 export default Users;
-

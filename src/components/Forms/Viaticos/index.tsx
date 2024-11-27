@@ -24,7 +24,7 @@ import ViaticosSchema, {
 import RutaDialog from '../Rutas';
 import { RutaState, useFormularioStore } from '@/stores/formulario.store';
 import { retrieveUsers } from '@/api/user';
-import { useQuery } from 'react-query';
+import { useMutation, useQuery } from 'react-query';
 import { FindAllUser } from '@/interfaces/users';
 import { retrieveFuel } from '@/api/fuel';
 import { Fuel } from '@/interfaces/fuel';
@@ -36,6 +36,10 @@ import AddButton from '@/components/Buttons/AddButton';
 import { retrieveProvinces } from '@/api/province';
 import { ProvinceEntity } from '@/interfaces/province';
 import { getFuelCalculated, getFuelGallons } from '@/helpers/calculos';
+import { createTravelExpense } from '@/api/travelExpense';
+import { TravelExpense } from '@/interfaces/travelExpenses';
+import { useDownloadPDF } from '@/hook/useDownloadPDF';
+import { getTravelExpensePdf } from '@/api/generatePdf';
 
 const initialValues = {
   people: [],
@@ -57,8 +61,12 @@ const initialValues = {
 
 function ViaticosForm() {
   const formularioStore = useFormularioStore();
+  const { downloadPDF } = useDownloadPDF();
+
   const [userSelector, setUserSelector] = React.useState<string[]>([]);
   const [areTollsActive, setAreTollsActive] = React.useState(false);
+  const [travelExpense, setTravelExpense] =
+    React.useState<TravelExpense | null>(null);
 
   const findUsersQuery = useQuery<FindAllUser[]>(
     'findUsersQuery',
@@ -69,6 +77,29 @@ function ViaticosForm() {
     'findAllProvinces',
     retrieveProvinces,
   );
+
+  const createTravelExpenseMutation = useMutation({
+    mutationFn: createTravelExpense,
+    onSuccess(data) {
+      setTravelExpense(data);
+    },
+    onError: (error) => {
+      console.log(error);
+    },
+  });
+
+  const { refetch: refetchGeneratorPDf } = useQuery(
+    'generatePDF',
+    () => getTravelExpensePdf(travelExpense?.id ?? ''),
+    {
+      enabled: !!travelExpense,
+      onSuccess(data) {
+        downloadPDF(data, 'Viaticos');
+      },
+      retry: false,
+    },
+  );
+
   const userData = findUsersQuery.data ?? [];
   const fuelData = findFuelQuery.data ?? [];
   const provinceData = findAllProvinces.data ?? [];
@@ -81,6 +112,7 @@ function ViaticosForm() {
     return {
       type: fuel.type,
       price: mostRecentFuelHistory.price ?? 0,
+      id: mostRecentFuelHistory.id,
     };
   });
 
@@ -93,7 +125,61 @@ function ViaticosForm() {
     } as unknown as ViaticosSchemaType,
     validationSchema: ViaticosSchema,
     onSubmit: (values) => {
-      console.log(values);
+      if (travelExpense) {
+        refetchGeneratorPDf();
+        return;
+      }
+
+      const totalPersonas = values.people.reduce((acc, curr) => {
+        return acc + curr.total;
+      }, 0);
+
+      const totalPeaje = values.tolls.reduce((acc, curr) => {
+        return acc + curr;
+      }, 0);
+
+      const totalCombustible = values.fuelTotalPrice;
+
+      const total = totalPersonas + totalPeaje + totalCombustible;
+
+      const requestBody = {
+        dependency: values.dependency,
+        fuel_history_id:
+          fuelPrice.find((fp) => fp.type === values.fuel)?.id ?? '',
+        departure_time: values.departureTime.toISOString(),
+        arrival_time: values.arrivalTime.toISOString(),
+        solicitude_date: values.solicitudeDate.toISOString(),
+        total_price: total,
+        route: {
+          starting_point_province_id: values.startPoint,
+          final_destination_province_id: values.visitPlace,
+          total_kms: values.kilometers,
+          description: values.comentary,
+        },
+        toll: values.tolls.map((toll, index) => ({
+          price: toll,
+          order: index + 1,
+        })),
+        visit_motivation: values.visitMotivation,
+        transport_type: values.transportation,
+        user_travel_history: values.people.map((person) => {
+          const user = userData.find((u) => u.id === person.personId);
+
+          return {
+            user_id: person.personId,
+            total_price: person.total,
+            is_lunch_applied: person.isLunchActive,
+            is_breakfast_applied: person.isBreakfastActive,
+            is_dinner_applied: person.isDinnerActive,
+            is_accommodation_applied: person.isAccommodationActive,
+            passage_price: person.passage,
+            job_position_history_id:
+              user?.job_position.job_position_history_id ?? '',
+          };
+        }),
+      };
+
+      createTravelExpenseMutation.mutate(requestBody);
     },
   });
 
@@ -127,6 +213,18 @@ function ViaticosForm() {
 
     formularioStore.setToggleModalRuta();
   };
+
+  const totalPersonas = formik.values.people.reduce((acc, curr) => {
+    return acc + curr.total;
+  }, 0);
+
+  const totalPeaje = formik.values.tolls.reduce((acc, curr) => {
+    return acc + curr;
+  }, 0);
+
+  const totalCombustible = formik.values.fuelTotalPrice;
+
+  const total = totalPersonas + totalPeaje + totalCombustible;
 
   return (
     <Box
@@ -662,8 +760,28 @@ function ViaticosForm() {
         </FieldArray>
       </FormikProvider>
 
+      {!areTollsActive && <Divider />}
+
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          gap: '.525rem',
+        }}
+      >
+        <Typography variant="h6" component="p">
+          Total:{' '}
+        </Typography>
+        <Typography variant="h4" component="p">
+          RD${total}
+        </Typography>
+      </Box>
+
       <Button variant="contained" type="submit">
-        <Typography variant="body1">Guardar</Typography>
+        <Typography variant="body1">
+          {travelExpense !== null ? 'Descargar PDF' : 'Guardar'}
+        </Typography>
       </Button>
 
       <RutaDialog onClose={onClose} />

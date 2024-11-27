@@ -2,7 +2,7 @@ import { useJobPositions } from '@/hook/useJobPositions';
 import { JobPosition } from '@/interfaces/job-position';
 import { Button, TextField, Stack } from '@mui/material';
 import axios from 'axios';
-import DataTable from './components/DataTable';
+import DataTable from '../../components/DataTable';
 import { Formik, Form, Field } from 'formik';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
 
@@ -20,7 +20,8 @@ const columns = [
   {
     header: 'Desayuno',
     accessor: 'job_position_histories',
-    render: (jobPosition: JobPosition) => getLatestHistory(jobPosition)?.breakfast,
+    render: (jobPosition: JobPosition) =>
+      getLatestHistory(jobPosition)?.breakfast,
   },
   {
     header: 'Cena',
@@ -30,12 +31,14 @@ const columns = [
   {
     header: 'Alojamiento',
     accessor: 'job_position_histories',
-    render: (jobPosition: JobPosition) => getLatestHistory(jobPosition)?.accommodation,
+    render: (jobPosition: JobPosition) =>
+      getLatestHistory(jobPosition)?.accommodation,
   },
 ];
 
 const JobPositionsPage: React.FC = () => {
-  const { jobPositions, isLoading, error, refetch, isRefetching } = useJobPositions();
+  const { jobPositions, isLoading, error, refetch, isRefetching } =
+    useJobPositions();
 
   const handleSaveJobPosition = async (formValues: any, id: string) => {
     const payload = {
@@ -51,7 +54,7 @@ const JobPositionsPage: React.FC = () => {
     }
   };
 
-  if (isLoading || isRefetching) return <LoadingBackdrop />
+  if (isLoading || isRefetching) return <LoadingBackdrop />;
   if (error) return <div>Error loading data</div>;
 
   return (
@@ -60,20 +63,34 @@ const JobPositionsPage: React.FC = () => {
         columns={columns}
         data={jobPositions!}
         collapsibleContent={(jobPosition: JobPosition) => (
-          <div style={{ padding: '20px', backgroundColor: '#f5f5f5', borderRadius: '8px' }} >
+          <div
+            style={{
+              padding: '20px',
+              backgroundColor: '#f5f5f5',
+              borderRadius: '8px',
+            }}
+          >
             <h2>Editar Posición de Trabajo</h2>
             <Formik
               initialValues={{
                 lunch: getLatestHistory(jobPosition)?.lunch || 0,
                 breakfast: getLatestHistory(jobPosition)?.breakfast || 0,
                 dinner: getLatestHistory(jobPosition)?.dinner || 0,
-                accommodation: getLatestHistory(jobPosition)?.accommodation || 0,
+                accommodation:
+                  getLatestHistory(jobPosition)?.accommodation || 0,
               }}
-              onSubmit={(values) => handleSaveJobPosition(values, jobPosition.id)}
+              onSubmit={(values) =>
+                handleSaveJobPosition(values, jobPosition.id)
+              }
             >
               {({ handleChange, values }) => (
                 <Form>
-                  <Stack direction="row" spacing={2} sx={{ width: '100%' }} marginTop={2}>
+                  <Stack
+                    direction="row"
+                    spacing={2}
+                    sx={{ width: '100%' }}
+                    marginTop={2}
+                  >
                     <Field
                       name="lunch"
                       as={TextField}
@@ -127,4 +144,3 @@ const JobPositionsPage: React.FC = () => {
 };
 
 export default JobPositionsPage;
-

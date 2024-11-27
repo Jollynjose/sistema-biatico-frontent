@@ -3,7 +3,7 @@ import { useFuels } from '@/hook/useFuels';
 import { Fuel } from '@/interfaces/fuel';
 import { Button, TextField, Stack } from '@mui/material';
 import axios from 'axios';
-import DataTable from './components/DataTable';
+import DataTable from '../../components/DataTable';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
 
 const FuelPage: React.FC = () => {
@@ -14,24 +14,30 @@ const FuelPage: React.FC = () => {
     if (price && fuel) {
       const payload = {
         fuel_id: fuel.id,
-        price
+        price,
       };
 
       try {
         await axios.post(`/api/fuel/update-history`, payload);
-        refetch()
+        refetch();
       } catch (error) {
         console.error('Error updating fuel:', error);
       }
     }
   };
 
-  const handlerChange = ({ target }) => setPrice(parseFloat(target.value))
+  const handlerChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => setPrice(parseFloat(e.target.value));
 
   const columns = [
     { header: 'Nombre', accessor: 'name' },
     { header: 'Tipo', accessor: 'type' },
-    { header: 'Precio', accessor: 'price', render: (fuel: Fuel) => `$${fuel.fuel_histories.at(-1)?.price}` },
+    {
+      header: 'Precio',
+      accessor: 'price',
+      render: (fuel: Fuel) => `$${fuel.fuel_histories.at(-1)?.price}`,
+    },
   ];
 
   const commonStyles = {
@@ -58,7 +64,7 @@ const FuelPage: React.FC = () => {
     </div>
   );
 
-  if (isLoading || isRefetching) return <LoadingBackdrop />
+  if (isLoading || isRefetching) return <LoadingBackdrop />;
   if (error) return <div>Error loading data</div>;
 
   return (
@@ -73,4 +79,3 @@ const FuelPage: React.FC = () => {
 };
 
 export default FuelPage;
-
