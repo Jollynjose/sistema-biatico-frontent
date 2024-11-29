@@ -41,12 +41,6 @@ export default function Home() {
               <Typography variant="body1">Formulario</Typography>
             </Link>
           </Button>
-
-          <Button variant="contained" color="primary">
-            <Link href={ROUTES.ACTUALIZAR_DATOS} passHref>
-              <Typography variant="body1">Actualizar Datos</Typography>
-            </Link>
-          </Button>
         </Box>
       </Box>
     </DefaultLayout>

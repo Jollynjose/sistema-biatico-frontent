@@ -15,7 +15,7 @@ import {
   Typography,
 } from '@mui/material';
 import { DatePicker, MobileTimePicker } from '@mui/x-date-pickers';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FieldArray, FormikProvider, useFormik } from 'formik';
 import ViaticosSchema, {
   ViaticosPorPersonaSchemaType,
@@ -78,27 +78,26 @@ function ViaticosForm() {
     retrieveProvinces,
   );
 
+  const refetchGeneratorPDf = () => {
+    if (travelExpense) {
+      getTravelExpensePdf(travelExpense?.id ?? '').then((data) => {
+        downloadPDF(data, 'viaticos');
+      });
+    }
+  };
+
   const createTravelExpenseMutation = useMutation({
     mutationFn: createTravelExpense,
     onSuccess(data) {
       setTravelExpense(data);
+      getTravelExpensePdf(data.id ?? '').then((data) => {
+        downloadPDF(data, 'viaticos');
+      });
     },
     onError: (error) => {
       console.log(error);
     },
   });
-
-  const { refetch: refetchGeneratorPDf } = useQuery(
-    'generatePDF',
-    () => getTravelExpensePdf(travelExpense?.id ?? ''),
-    {
-      enabled: !!travelExpense,
-      onSuccess(data) {
-        downloadPDF(data, 'Viaticos');
-      },
-      retry: false,
-    },
-  );
 
   const userData = findUsersQuery.data ?? [];
   const fuelData = findFuelQuery.data ?? [];

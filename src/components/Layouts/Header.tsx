@@ -15,16 +15,12 @@ import Link from 'next/link';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import Head from 'next/head';
 import { ROUTES } from '@/interfaces/auth';
-import { useSession } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 
 const pages: Array<{ text: string; path: string }> = [
   {
     text: 'Formulario',
     path: ROUTES.FORMULARIO,
-  },
-  {
-    text: 'Actualizar Datos',
-    path: ROUTES.ACTUALIZAR_DATOS,
   },
 ];
 const settings: string[] = ['Profile', 'Account', 'Dashboard', 'Logout'];
@@ -173,6 +169,16 @@ function Header() {
                   <Link href={ROUTES.SIGNUP}>Registrarse</Link>
                 </Button>
               </>
+            )}
+            {status === 'authenticated' && (
+              <Button
+                onClick={() => {
+                  signOut();
+                }}
+                sx={{ color: 'white', display: 'block' }}
+              >
+                Logout
+              </Button>
             )}
           </Box>
           <Box sx={{ flexGrow: 0 }}>

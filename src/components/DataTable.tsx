@@ -9,7 +9,8 @@ import {
   Paper,
   Button,
   Collapse,
-  TablePagination
+  TablePagination,
+  Box,
 } from '@mui/material';
 
 interface Column<T> {
@@ -22,9 +23,17 @@ interface DataTableProps<T> {
   data: T[];
   columns: Column<T>[];
   collapsibleContent?: (row: T) => ReactNode;
+  addCreateButton?: boolean;
+  onCreate?: () => void;
 }
 
-const DataTable: FC<DataTableProps<any>> = ({ data, columns, collapsibleContent }) => {
+const DataTable: FC<DataTableProps<any>> = ({
+  data,
+  columns,
+  collapsibleContent,
+  addCreateButton,
+  onCreate,
+}) => {
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(8);
@@ -38,13 +47,18 @@ const DataTable: FC<DataTableProps<any>> = ({ data, columns, collapsibleContent 
     setExpandedRow(null);
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
     setExpandedRow(null);
   };
 
-  const paginatedData = data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const paginatedData = data.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage,
+  );
 
   return (
     <>
@@ -55,7 +69,32 @@ const DataTable: FC<DataTableProps<any>> = ({ data, columns, collapsibleContent 
               {columns.map((column, index) => (
                 <TableCell key={index}>{column.header}</TableCell>
               ))}
-              {collapsibleContent && <TableCell>Acciones</TableCell>}
+              {collapsibleContent && (
+                <TableCell>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      flexDirection: 'row',
+                      gap: '8px',
+                    }}
+                  >
+                    Acciones
+                    {addCreateButton && (
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          onCreate?.();
+                        }}
+                        variant="outlined"
+                        size="small"
+                      >
+                        Crear
+                      </Button>
+                    )}
+                  </Box>
+                </TableCell>
+              )}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -64,7 +103,9 @@ const DataTable: FC<DataTableProps<any>> = ({ data, columns, collapsibleContent 
                 <TableRow>
                   {columns.map((column, colIndex) => (
                     <TableCell key={colIndex}>
-                      {column.render ? column.render(row) : (row[column.accessor] as ReactNode)}
+                      {column.render
+                        ? column.render(row)
+                        : (row[column.accessor] as ReactNode)}
                     </TableCell>
                   ))}
                   {collapsibleContent && (
@@ -74,15 +115,24 @@ const DataTable: FC<DataTableProps<any>> = ({ data, columns, collapsibleContent 
                         onClick={() => toggleRow(index + page * rowsPerPage)}
                         size="small"
                       >
-                        {expandedRow === index + page * rowsPerPage ? 'Cerrar' : 'Editar'}
+                        {expandedRow === index + page * rowsPerPage
+                          ? 'Cerrar'
+                          : 'Editar'}
                       </Button>
                     </TableCell>
                   )}
                 </TableRow>
                 {collapsibleContent && (
                   <TableRow>
-                    <TableCell colSpan={columns.length + 1} style={{ paddingBottom: 0, paddingTop: 0 }}>
-                      <Collapse in={expandedRow === index + page * rowsPerPage} timeout="auto" unmountOnExit>
+                    <TableCell
+                      colSpan={columns.length + 1}
+                      style={{ paddingBottom: 0, paddingTop: 0 }}
+                    >
+                      <Collapse
+                        in={expandedRow === index + page * rowsPerPage}
+                        timeout="auto"
+                        unmountOnExit
+                      >
                         <div style={{ margin: '16px 0' }}>
                           {collapsibleContent(row)}
                         </div>
@@ -110,5 +160,3 @@ const DataTable: FC<DataTableProps<any>> = ({ data, columns, collapsibleContent 
 };
 
 export default DataTable;
-
-
