@@ -475,11 +475,6 @@ function ViaticosForm() {
             formik.setFieldValue('arrivalTime', date?.toDate() ?? null);
             formik.setFieldTouched('arrivalTime', true);
           }}
-          minTime={
-            formik.values.departureTime === null
-              ? undefined
-              : dayjs(formik.values.departureTime)
-          }
         />
       </Box>
 
